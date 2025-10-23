@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thermal Bill Generator (58mm)</title>
+<style>
+  body {
+    font-family: 'Courier New', monospace;
+    width: 220px; /* 58mm paper width */
+    margin: 0 auto;
+    padding: 5px;
+  }
+  h2, p, th, td { font-size: 12px; }
+  h2 { text-align: center; font-weight: bold; margin: 4px 0; }
+  .center { text-align: center; }
+  .right { text-align: right; }
+  hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+  th, td { border-bottom: 1px dotted #000; padding: 2px 0; }
+  input, button {
+    width: 100%;
+    margin: 5px 0;
+    padding: 6px;
+    font-size: 12px;
+  }
+  button {
+    background: black;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  #printBtn { background: blue; }
+  #downloadBtn { background: green; margin-top: 5px; }
+  .footer { text-align: center; margin-top: 8px; font-size: 11px; }
+  #barcode { text-align: center; margin-top: 8px; }
+  @media print {
+    button, form { display: none; }
+    body { margin: 0; width: 58mm; }
+  }
+</style>
+</head>
+<body>
+  <h2>METTUR SUPER SERVICES</h2>
+  <p class="center">Kmpr Ward 8 Block:505, 1st Main Road<br>Bengaluru<br>9443310770</p>
+  <hr>
+
+  <form id="billForm">
+    <label>Customer Name:</label>
+    <input type="text" id="customerName" placeholder="Enter Name" required>
+
+    <label>Item Name:</label>
+    <input type="text" id="itemName" placeholder="BiCycle" required>
+
+    <label>Price:</label>
+    <input type="number" id="price" value="4997" required>
+
+    <label>Quantity:</label>
+    <input type="number" id="quantity" value="1" required>
+
+    <label>Date & Time (optional):</label>
+    <input type="datetime-local" id="manualDate">
+
+    <button type="button" onclick="generateBill()">Generate Bill</button>
+  </form>
+
+  <div id="billOutput" style="display:none;">
+    <hr>
+    <div id="billContent">
+      <p>
+        <b>Receipt No:</b> <span id="receiptNo"></span><br>
+        <b>Table No:</b> 02<br>
+        <b>Date:</b> <span id="billDate"></span><br>
+        <b>Customer:</b> <span id="customerNameDisplay"></span>
+      </p>
+
+      <table>
+        <tr>
+          <th>QTY/ Item</th>
+          <th class="right">Price</th>
+          <th class="right">Amount</th>
+        </tr>
+        <tr>
+          <td id="itemRow"></td>
+          <td class="right" id="priceRow"></td>
+          <td class="right" id="amountRow"></td>
+        </tr>
+      </table>
+
+      <p class="right">Sub Total: <span id="subTotal"></span></p>
+      <p class="right">CGST: 5% <span id="cgst"></span></p>
+      <p class="right">SGST: 5% <span id="sgst"></span></p>
+      <h3 class="right">Total: <span id="total"></span></h3>
+
+      <p>Payment Mode: Cash</p>
+      <div class="footer">
+        <p>PLEASE VISIT US AGAIN<br>THANK YOU!!</p>
+      </div>
+
+      <!-- Barcode area -->
+      <div id="barcode"></div>
+    </div>
+
+    <button id="printBtn" onclick="window.print()">Print Receipt</button>
+    <button id="downloadBtn" onclick="downloadPDF()">Download as PDF</button>
+  </div>
+
+<!-- ✅ html2pdf (for PDF download) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+<script>
+// ✅ Function to draw a simple barcode using SVG (no library needed)
+function drawSimpleBarcode(value){
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS,"svg");
+  svg.setAttribute("width","160");
+  svg.setAttribute("height","50");
+  svg.style.display="block";
+  svg.style.margin="auto";
+
+  let x = 10;
+  for(let i=0;i<value.length;i++){
+    const n = parseInt(value[i]);
+    const bar = document.createElementNS(svgNS,"rect");
+    bar.setAttribute("x",x);
+    bar.setAttribute("y",5);
+    bar.setAttribute("width",1 + (n % 3)); // vary width slightly
+    bar.setAttribute("height",35);
+    bar.setAttribute("fill","black");
+    svg.appendChild(bar);
+    x += 3; // spacing between bars
+  }
+
+  // Add number below
+  const text = document.createElementNS(svgNS,"text");
+  text.setAttribute("x",25);
+  text.setAttribute("y",47);
+  text.setAttribute("font-size","10");
+  text.textContent=value;
+  svg.appendChild(text);
+
+  return svg;
+}
+
+// ✅ Generate Bill
+function generateBill() {
+  const name = document.getElementById('customerName').value;
+  const item = document.getElementById('itemName').value;
+  const price = parseFloat(document.getElementById('price').value);
+  const qty = parseInt(document.getElementById('quantity').value);
+  const manualDate = document.getElementById('manualDate').value;
+
+  const subTotal = price * qty;
+  const cgst = subTotal * 0.05;
+  const sgst = subTotal * 0.05;
+  const total = subTotal + cgst + sgst;
+  const receipt = Math.floor(Math.random() * 1000000000).toString();
+
+  document.getElementById('receiptNo').innerText = receipt;
+  document.getElementById('billDate').innerText = manualDate
+    ? new Date(manualDate).toLocaleString()
+    : new Date().toLocaleString();
+  document.getElementById('customerNameDisplay').innerText = name;
+
+  document.getElementById('itemRow').innerText = `${qty} ${item}`;
+  document.getElementById('priceRow').innerText = price.toFixed(2);
+  document.getElementById('amountRow').innerText = subTotal.toFixed(2);
+
+  document.getElementById('subTotal').innerText = `₹${subTotal.toFixed(2)}`;
+  document.getElementById('cgst').innerText = `₹${cgst.toFixed(2)}`;
+  document.getElementById('sgst').innerText = `₹${sgst.toFixed(2)}`;
+  document.getElementById('total').innerText = `₹${total.toFixed(2)}`;
+
+  // ✅ Create and attach simple barcode
+  const barcodeDiv = drawSimpleBarcode(receipt);
+  document.getElementById('barcode').innerHTML = '';
+  document.getElementById('barcode').appendChild(barcodeDiv);
+
+  document.getElementById('billOutput').style.display = 'block';
+}
+
+// ✅ PDF download
+function downloadPDF() {
+  const billContent = document.getElementById('billContent');
+  const opt = {
+    margin: 0.1,
+    filename: 'thermal_bill.pdf',
+    image: { type: 'jpeg', quality: 1 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: [58, 200], orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(billContent).save();
+}
+</script>
+</body>
+</html>

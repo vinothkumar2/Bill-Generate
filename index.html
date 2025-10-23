@@ -62,6 +62,9 @@
     <label>Date & Time (optional):</label>
     <input type="datetime-local" id="manualDate">
 
+    <label>Barcode Number (optional):</label>
+    <input type="text" id="manualBarcode" placeholder="Leave blank for auto">
+
     <button type="button" onclick="generateBill()">Generate Bill</button>
   </form>
 
@@ -98,7 +101,6 @@
         <p>PLEASE VISIT US AGAIN<br>THANK YOU!!</p>
       </div>
 
-      <!-- Barcode area -->
       <div id="barcode"></div>
     </div>
 
@@ -115,13 +117,13 @@ function drawSimpleBarcode(value){
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS,"svg");
   svg.setAttribute("width","160");
-  svg.setAttribute("height","50");
+  svg.setAttribute("height","45");
   svg.style.display="block";
   svg.style.margin="auto";
 
   let x = 10;
   for(let i=0;i<value.length;i++){
-    const n = parseInt(value[i]);
+    const n = parseInt(value[i]) || 0;
     const bar = document.createElementNS(svgNS,"rect");
     bar.setAttribute("x",x);
     bar.setAttribute("y",5);
@@ -132,14 +134,7 @@ function drawSimpleBarcode(value){
     x += 3; // spacing between bars
   }
 
-  // Add number below
-  const text = document.createElementNS(svgNS,"text");
-  text.setAttribute("x",25);
-  text.setAttribute("y",47);
-  text.setAttribute("font-size","10");
-  text.textContent=value;
-  svg.appendChild(text);
-
+  // (Removed number display below)
   return svg;
 }
 
@@ -150,12 +145,16 @@ function generateBill() {
   const price = parseFloat(document.getElementById('price').value);
   const qty = parseInt(document.getElementById('quantity').value);
   const manualDate = document.getElementById('manualDate').value;
+  const manualBarcode = document.getElementById('manualBarcode').value.trim();
 
   const subTotal = price * qty;
   const cgst = subTotal * 0.05;
   const sgst = subTotal * 0.05;
   const total = subTotal + cgst + sgst;
   const receipt = Math.floor(Math.random() * 1000000000).toString();
+
+  // Use manual barcode if entered, else auto-generate from receipt
+  const barcodeValue = manualBarcode || receipt;
 
   document.getElementById('receiptNo').innerText = receipt;
   document.getElementById('billDate').innerText = manualDate
@@ -172,8 +171,8 @@ function generateBill() {
   document.getElementById('sgst').innerText = `₹${sgst.toFixed(2)}`;
   document.getElementById('total').innerText = `₹${total.toFixed(2)}`;
 
-  // ✅ Create and attach simple barcode
-  const barcodeDiv = drawSimpleBarcode(receipt);
+  // ✅ Create and attach simple barcode (no number displayed)
+  const barcodeDiv = drawSimpleBarcode(barcodeValue);
   document.getElementById('barcode').innerHTML = '';
   document.getElementById('barcode').appendChild(barcodeDiv);
 
